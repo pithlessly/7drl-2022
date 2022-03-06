@@ -63,8 +63,8 @@ end;
 function Map.GetTile(const at: Vec2): TileClass;
 var idx: NativeUInt;
 begin
-    assert((0 <= at.x) and (at.x < width), 'x out of bounds');
-    assert((0 <= at.y) and (at.y < height), 'y out of bounds');
+    assert(at.x in [0..width - 1], 'x out of bounds');
+    assert(at.y in [0..height - 1], 'y out of bounds');
     idx := NativeUInt(at.y) * NativeUInt(width) + NativeUInt(at.x);
     result := tiles[idx];
 end;
