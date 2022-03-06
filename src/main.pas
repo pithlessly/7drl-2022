@@ -110,7 +110,7 @@ end;
 
 procedure MoveCursorExact(const x, y: Int16);
 begin
-    write (#27'[', y + 1, ';', x + 1, 'H'); // CHA
+    write(#27'[', y + 1, ';', x + 1, 'H'); // CHA
 end;
 
 procedure MoveCursor(const old_x, old_y: Int16; const new_x, new_y: Int16);
@@ -124,22 +124,22 @@ begin
 
     else if (dy = 0) then
         if (dx < 0) then
-            write (#27'[', -dx, 'D') // CUB
+            write(#27'[', -dx, 'D') // CUB
         else if (dx > 0) then
-            write (#27'[', dx, 'C') // CUF
+            write(#27'[', dx, 'C') // CUF
         else begin end
 
     else if (dx = 0) and (dy > 0) then
         if (dy = 1) then
-            write (#10)
+            write(#10)
         else
-            write (#27'[', dy, 'B') // CUD
+            write(#27'[', dy, 'B') // CUD
 
     else if (new_x = 0) and (dy > 0) then
         if (dy = 1) then
-            write (#13#10)
+            write(#13#10)
         else
-            write (#27'[', dy, 'E') // CNL
+            write(#27'[', dy, 'E') // CNL
 
     else
         MoveCursorExact(new_x, new_y);
@@ -159,7 +159,7 @@ type
 constructor Screen.Init(const width_, height_: UInt16);
 var i: NativeUInt;
 begin
-    write (#27'[H'#27'[J'); { clear screen & move to top }
+    write(#27'[H'#27'[J'); { clear screen & move to top }
     width := width_;
     height := height_;
     SetLength(cells, width * height);
@@ -190,7 +190,7 @@ begin
             begin
                 MoveCursor(cx, cy, x, y);
                 { TODO: write color }
-                write (cur_cell.c);
+                write(cur_cell.c);
                 cx := x + 1;
                 cy := y;
             end;
