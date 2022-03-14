@@ -149,6 +149,9 @@ begin
             cells[cell_idx] := cur_cell;
             cell_idx := cell_idx + 1;
         end;
+    MoveCursor(cx, cy, player.loc.x, player.loc.y);
+    cx := player.loc.x;
+    cy := player.loc.y;
     cursor.x := cx;
     cursor.y := cy;
 end;
