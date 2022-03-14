@@ -8,44 +8,31 @@ unit World;
 
 interface
 
-type Vec2 = record x: Int16; y: Int16; end;
-function MkVec2(const x, y: Int16): Vec2;
-operator= (const a, b: Vec2): Boolean;
-function Dist2(const a, b: Vec2): Int32;
+uses Util, Vision;
 
 type
     Player = record loc: Vec2; end;
 
-    TileClass = (empty, solid);
+    TileKind = (empty, solid);
+    Tile = record
+        kind: TileKind;
+        is_visible: Boolean;
+    end;
+    TilePtr = ^Tile;
+
     Map = object
     private
         width, height: UInt16;
-        tiles: array of TileClass;
+        tiles: array of Tile;
+        procedure ResetVisibility;
     public
         constructor Init(const width_, height_: UInt16);
-        function GetTile(const at: Vec2): TileClass;
+        function TryGetTile(const at: Vec2; var t: TilePtr): Boolean;
+        function GetTile(const at: Vec2): TilePtr;
+        procedure RecomputeVisibility(const origin: Vec2);
     end;
 
 implementation
-
-function MkVec2(const x, y: Int16): Vec2;
-begin
-    result.x := x;
-    result.y := y;
-end;
-
-operator= (const a, b: Vec2): Boolean;
-begin
-    result := (a.x = b.x) and (a.y = b.y);
-end;
-
-function Dist2(const a, b: Vec2): Int32;
-var dx, dy: Int32;
-begin
-    dx := Int32(a.x) - Int32(b.x);
-    dy := Int32(a.y) - Int32(b.y);
-    result := dx * dx + dy * dy;
-end;
 
 constructor Map.Init(const width_, height_: UInt16);
 var i: NativeUInt;
@@ -55,18 +42,81 @@ begin
     SetLength(tiles, width * height);
     for i := Low(tiles) to High(tiles) do
         if (Random(5) = 0) then
-            tiles[i] := TileClass.solid
+            tiles[i].kind := TileKind.solid
         else
-            tiles[i] := TileClass.empty;
+            tiles[i].kind := TileKind.empty;
+    ResetVisibility;
 end;
 
-function Map.GetTile(const at: Vec2): TileClass;
+procedure Map.ResetVisibility;
+var i: NativeUInt;
+begin
+    for i := Low(tiles) to high(tiles) do
+        tiles[i].is_visible := false;
+end;
+
+function Map.TryGetTile(const at: Vec2; var t: TilePtr): Boolean;
 var idx: NativeUInt;
 begin
-    assert(at.x in [0..width - 1], 'x out of bounds');
-    assert(at.y in [0..height - 1], 'y out of bounds');
+    result := (at.x in [0..width - 1]) and (at.y in [0..height - 1]);
+    if not result then
+        exit;
     idx := NativeUInt(at.y) * NativeUInt(width) + NativeUInt(at.x);
-    result := tiles[idx];
+    t := @tiles[idx];
+end;
+
+function Map.GetTile(const at: Vec2): TilePtr;
+begin
+    Assert(Map.TryGetTile(at, result), 'out of bounds');
+end;
+
+type
+    MapPtr = ^Map;
+    VisibilityAdapter = object
+    private
+        inner: MapPtr;
+    public
+        constructor Init(const inner_: MapPtr);
+        function IsOpaque(const at: Vec2): Boolean;
+        function VisibilityDistance(const at: Vec2): UInt32;
+        procedure MarkVisible(const at: Vec2);
+    end;
+
+constructor VisibilityAdapter.Init(const inner_: MapPtr);
+begin
+    inner := inner_;
+end;
+
+function VisibilityAdapter.IsOpaque(const at: Vec2): Boolean;
+var t: ^Tile;
+begin
+    result := inner^.TryGetTile(at, t) and (t^.kind = TileKind.solid);
+end;
+
+function VisibilityAdapter.VisibilityDistance(const at: Vec2): UInt32;
+begin
+    result := Dist2(at, MkVec2(0, 0));
+end;
+
+procedure VisibilityAdapter.MarkVisible(const at: Vec2);
+var t: TilePtr;
+begin
+    t := nil;
+    if inner^.TryGetTile(at, t) then
+        t^.is_visible := true;
+end;
+
+procedure Map.RecomputeVisibility(const origin: Vec2);
+const
+    MAX_DISTANCE = 50;
+var
+    adapter: VisibilityAdapter;
+    vc: specialize VisionComputation<VisibilityAdapter>;
+begin
+    ResetVisibility;
+    adapter.Init(@self);
+    vc.Init(adapter, origin, MAX_DISTANCE);
+    vc.Compute;
 end;
 
 end.

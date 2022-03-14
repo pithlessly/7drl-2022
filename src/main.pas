@@ -6,7 +6,7 @@
 
 program Sevendrl;
 
-uses World;
+uses Util, World, Vision;
 
 procedure enter_raw_mode; cdecl; external;
 procedure exit_raw_mode; cdecl; external;
@@ -36,23 +36,28 @@ begin
     result := (a.c = b.c) and (a.fg = b.fg);
 end;
 
-function CharOfTile(const t: TileClass): Char;
+function CharOfTile(const t: Tile): Char;
 begin
-    case t of
-        TileClass.empty: result := ' ';
-        TileClass.solid: result := '#';
+    case t.kind of
+        TileKind.empty: result := ' ';
+        TileKind.solid: result := '#';
     end;
 end;
 
 function ComputeCell(const map: Map; const player_loc: Vec2; const p: Vec2): Cell;
+var t: TilePtr;
 begin
     result.fg := Color.default;
     if (p = player_loc) then
         result.c := '@'
-    else if (dist2(p, player_loc) < 100) then
-        result.c := CharOfTile(map.GetTile(p))
     else
-        result.c := '.';
+    begin
+        t := map.GetTile(p);
+        if t^.is_visible then
+            result.c := CharOfTile(t^)
+        else
+            result.c := '.';
+    end;
 end;
 
 procedure MoveCursorExact(const x, y: Int16);
@@ -187,6 +192,7 @@ begin
     p.loc.y := 5;
     while true do
     begin
+        map_.RecomputeVisibility(p.loc);
         scr.Update(map_, p);
         k := ReadKey;
         case k of
