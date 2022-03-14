@@ -11,20 +11,32 @@ interface
 uses Util, Vision;
 
 type
-    Player = record
-        loc: Vec2;
-        omniscient: Boolean;
-    end;
-
-function InitPlayer: Player;
-
-type
     TileKind = (empty, solid);
     Tile = record
         kind: TileKind;
         is_visible: Boolean;
     end;
     TilePtr = ^Tile;
+
+    {$interfaces corba}
+    IWorld = interface
+        procedure RecomputeVisibility;
+        procedure MovePlayer(const dx, dy: Int8);
+        procedure ToggleOmniscience;
+
+        function PlayerLoc: Vec2;
+        function GetMapTile(const at: Vec2): TilePtr;
+    end;
+
+function InitWorld(const width, height: UInt16): IWorld;
+
+implementation
+
+type
+    Player = record
+        loc: Vec2;
+        omniscient: Boolean;
+    end;
 
     Map = object
     private
@@ -36,15 +48,52 @@ type
         function TryGetTile(const at: Vec2; var t: TilePtr): Boolean;
         function GetTile(const at: Vec2): TilePtr;
         function IsSolid(const at: Vec2): Boolean;
-        procedure RecomputeVisibility(const player: Player);
     end;
 
-implementation
+    WorldInternal = class(IWorld)
+    private
+        player_: Player;
+        map_: Map;
+    public
+        procedure RecomputeVisibility;
+        procedure MovePlayer(const dx, dy: Int8);
+        procedure ToggleOmniscience;
 
-function InitPlayer: Player;
+        function PlayerLoc: Vec2;
+        function GetMapTile(const at: Vec2): TilePtr;
+    end;
+
+function InitWorld(const width, height: UInt16): IWorld;
+var world: WorldInternal;
 begin
-    result.loc := MkVec2(5, 5);
-    result.omniscient := true;
+    world := WorldInternal.Create;
+    world.player_.loc := MkVec2(5, 5);
+    world.player_.omniscient := true;
+    world.map_.Init(width, height);
+    result := IWorld(world);
+end;
+
+procedure WorldInternal.MovePlayer(const dx, dy: Int8);
+var new_loc: Vec2;
+begin
+    new_loc := MkVec2(player_.loc.x + dx, player_.loc.y + dy);
+    if not map_.IsSolid(new_loc) then
+        player_.loc := new_loc;
+end;
+
+procedure WorldInternal.ToggleOmniscience;
+begin
+    player_.omniscient := not player_.omniscient;
+end;
+
+function WorldInternal.GetMapTile(const at: Vec2): TilePtr;
+begin
+    result := map_.GetTile(at);
+end;
+
+function WorldInternal.PlayerLoc: Vec2;
+begin
+    result := player_.loc;
 end;
 
 constructor Map.Init(const width_, height_: UInt16);
@@ -54,11 +103,13 @@ begin
     height := height_;
     SetLength(tiles, width * height);
     for i := Low(tiles) to High(tiles) do
+    begin
+        tiles[i].is_visible := false;
         if (Random(5) = 0) then
             tiles[i].kind := TileKind.solid
         else
             tiles[i].kind := TileKind.empty;
-    ResetVisibility(false);
+    end
 end;
 
 procedure Map.ResetVisibility(const status: Boolean);
@@ -124,17 +175,17 @@ begin
         t^.is_visible := true;
 end;
 
-procedure Map.RecomputeVisibility(const player: Player);
+procedure WorldInternal.RecomputeVisibility;
 const
     MAX_DISTANCE = 50;
 var
     adapter: VisibilityAdapter;
     vc: specialize VisionComputation<VisibilityAdapter>;
 begin
-    ResetVisibility(player.omniscient);
-    if player.omniscient then exit;
+    map_.ResetVisibility(player_.omniscient);
+    if player_.omniscient then exit;
     adapter.Init(@self);
-    vc.Init(adapter, player.loc, MAX_DISTANCE);
+    vc.Init(adapter, PlayerLoc, MAX_DISTANCE);
     vc.Compute;
 end;
 

@@ -44,15 +44,15 @@ begin
     end;
 end;
 
-function ComputeCell(const map: Map; const player_loc: Vec2; const p: Vec2): Cell;
+function ComputeCell(const world: IWorld; const player_loc, at: Vec2): Cell;
 var t: TilePtr;
 begin
     result.fg := Color.default;
-    if (p = player_loc) then
+    if (at = player_loc) then
         result.c := '@'
     else
     begin
-        t := map.GetTile(p);
+        t := world.GetMapTile(at);
         if t^.is_visible then
             result.c := CharOfTile(t^)
         else
@@ -97,15 +97,14 @@ begin
         MoveCursorExact(new_x, new_y);
 end;
 
-type
-    Screen = object
+type Screen = object
     private
         width, height: UInt16;
         cells: array of Cell;
         cursor: Vec2;
     public
         constructor Init(const width_, height_: UInt16);
-        procedure Update(const map: Map; const player: Player);
+        procedure Update(const world: IWorld);
     end;
 
 constructor Screen.Init(const width_, height_: UInt16);
@@ -124,19 +123,21 @@ begin
     cursor.y := 0;
 end;
 
-procedure Screen.Update(const map: Map; const player: Player);
+procedure Screen.Update(const world: IWorld);
 var
+    player_loc: Vec2;
     x, y, cx, cy: Int16;
     cur_cell, old_cell: Cell;
     cell_idx: NativeUInt;
 begin
+    player_loc := world.PlayerLoc;
     cx := cursor.x;
     cy := cursor.y;
     cell_idx := 0;
     for y := 0 to height - 1 do
         for x := 0 to width - 1 do
         begin
-            cur_cell := ComputeCell(map, player.loc, MkVec2(x, y));
+            cur_cell := ComputeCell(world, player_loc, MkVec2(x, y));
             old_cell := cells[cell_idx];
             if (cur_cell <> old_cell) then
             begin
@@ -149,9 +150,9 @@ begin
             cells[cell_idx] := cur_cell;
             cell_idx := cell_idx + 1;
         end;
-    MoveCursor(cx, cy, player.loc.x, player.loc.y);
-    cx := player.loc.x;
-    cy := player.loc.y;
+    MoveCursor(cx, cy, player_loc.x, player_loc.y);
+    cx := player_loc.x;
+    cy := player_loc.y;
     cursor.x := cx;
     cursor.y := cy;
 end;
@@ -186,25 +187,23 @@ const
     HEIGHT = 24;
 var
     scr: Screen;
-    map_: Map;
-    p: Player;
+    world: IWorld;
     k: Key;
 begin
-    map_.Init(WIDTH, HEIGHT);
+    world := InitWorld(WIDTH, HEIGHT);
     scr.Init(WIDTH, HEIGHT);
-    p := InitPlayer;
     while true do
     begin
-        map_.RecomputeVisibility(p);
-        scr.Update(map_, p);
+        world.RecomputeVisibility;
+        scr.Update(world);
         k := ReadKey;
         case k of
             Key.ctrl_c: break;
-            Key.h: p.loc.x -= 1;
-            Key.j: p.loc.y += 1;
-            Key.k: p.loc.y -= 1;
-            Key.l: p.loc.x += 1;
-            Key.v: p.omniscient := not p.omniscient;
+            Key.h: world.MovePlayer(-1,  0);
+            Key.j: world.MovePlayer( 0,  1);
+            Key.k: world.MovePlayer( 0, -1);
+            Key.l: world.MovePlayer( 1,  0);
+            Key.v: world.ToggleOmniscience;
         end;
     end;
 end;
