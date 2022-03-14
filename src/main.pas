@@ -153,7 +153,7 @@ begin
     cursor.y := cy;
 end;
 
-type Key = (y, u, h, j, k, l, b, n, ctrl_c, other);
+type Key = (y, u, h, j, k, l, v, b, n, ctrl_c, other);
 
 function ReadKey: Key;
 var
@@ -169,6 +169,7 @@ begin
         'j': result := Key.j;
         'k': result := Key.k;
         'l': result := Key.l;
+        'v': result := Key.v;
         'b': result := Key.b;
         'n': result := Key.n;
     else
@@ -188,11 +189,10 @@ var
 begin
     map_.Init(WIDTH, HEIGHT);
     scr.Init(WIDTH, HEIGHT);
-    p.loc.x := 5;
-    p.loc.y := 5;
+    p := InitPlayer;
     while true do
     begin
-        map_.RecomputeVisibility(p.loc);
+        map_.RecomputeVisibility(p);
         scr.Update(map_, p);
         k := ReadKey;
         case k of
@@ -201,6 +201,7 @@ begin
             Key.j: p.loc.y += 1;
             Key.k: p.loc.y -= 1;
             Key.l: p.loc.x += 1;
+            Key.v: p.omniscient := not p.omniscient;
         end;
     end;
 end;

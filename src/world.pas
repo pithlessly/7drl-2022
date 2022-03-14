@@ -11,8 +11,14 @@ interface
 uses Util, Vision;
 
 type
-    Player = record loc: Vec2; end;
+    Player = record
+        loc: Vec2;
+        omniscient: Boolean;
+    end;
 
+function InitPlayer: Player;
+
+type
     TileKind = (empty, solid);
     Tile = record
         kind: TileKind;
@@ -24,15 +30,22 @@ type
     private
         width, height: UInt16;
         tiles: array of Tile;
-        procedure ResetVisibility;
+        procedure ResetVisibility(const status: Boolean);
     public
         constructor Init(const width_, height_: UInt16);
         function TryGetTile(const at: Vec2; var t: TilePtr): Boolean;
         function GetTile(const at: Vec2): TilePtr;
-        procedure RecomputeVisibility(const origin: Vec2);
+        function IsSolid(const at: Vec2): Boolean;
+        procedure RecomputeVisibility(const player: Player);
     end;
 
 implementation
+
+function InitPlayer: Player;
+begin
+    result.loc := MkVec2(5, 5);
+    result.omniscient := true;
+end;
 
 constructor Map.Init(const width_, height_: UInt16);
 var i: NativeUInt;
@@ -45,14 +58,14 @@ begin
             tiles[i].kind := TileKind.solid
         else
             tiles[i].kind := TileKind.empty;
-    ResetVisibility;
+    ResetVisibility(false);
 end;
 
-procedure Map.ResetVisibility;
+procedure Map.ResetVisibility(const status: Boolean);
 var i: NativeUInt;
 begin
     for i := Low(tiles) to high(tiles) do
-        tiles[i].is_visible := false;
+        tiles[i].is_visible := status;
 end;
 
 function Map.TryGetTile(const at: Vec2; var t: TilePtr): Boolean;
@@ -68,6 +81,12 @@ end;
 function Map.GetTile(const at: Vec2): TilePtr;
 begin
     Assert(Map.TryGetTile(at, result), 'out of bounds');
+end;
+
+function Map.IsSolid(const at: Vec2): Boolean;
+var t: ^Tile;
+begin
+    result := TryGetTile(at, t) and (t^.kind = TileKind.solid);
 end;
 
 type
@@ -88,9 +107,8 @@ begin
 end;
 
 function VisibilityAdapter.IsOpaque(const at: Vec2): Boolean;
-var t: ^Tile;
 begin
-    result := inner^.TryGetTile(at, t) and (t^.kind = TileKind.solid);
+    result := inner^.IsSolid(at);
 end;
 
 function VisibilityAdapter.VisibilityDistance(const at: Vec2): UInt32;
@@ -106,16 +124,17 @@ begin
         t^.is_visible := true;
 end;
 
-procedure Map.RecomputeVisibility(const origin: Vec2);
+procedure Map.RecomputeVisibility(const player: Player);
 const
     MAX_DISTANCE = 50;
 var
     adapter: VisibilityAdapter;
     vc: specialize VisionComputation<VisibilityAdapter>;
 begin
-    ResetVisibility;
+    ResetVisibility(player.omniscient);
+    if player.omniscient then exit;
     adapter.Init(@self);
-    vc.Init(adapter, origin, MAX_DISTANCE);
+    vc.Init(adapter, player.loc, MAX_DISTANCE);
     vc.Compute;
 end;
 
