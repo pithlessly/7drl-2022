@@ -4,19 +4,19 @@ pub const Vec2 = struct {
     x: i16,
     y: i16,
 
-    fn new(x: i16, y: i16) Vec2 {
+    pub fn new(x: i16, y: i16) Vec2 {
         return .{ .x = x, .y = y };
     }
 
-    fn eq(self: Vec2, other: Vec2) bool {
+    pub fn eq(self: Vec2, other: Vec2) bool {
         return self.x == other.x and self.y == other.y;
     }
 
-    fn add(self: Vec2, other: Vec2) Vec2 {
+    pub fn add(self: Vec2, other: Vec2) Vec2 {
         return .{ .x = self.x + other.x, .y = self.y + other.y };
     }
 
-    fn dist(self: Vec2, other: Vec2) u32 {
+    pub fn dist(self: Vec2, other: Vec2) u32 {
         const dx = @as(i32, self.x) - @as(i32, other.x);
         const dy = @as(i32, self.y) - @as(i32, other.y);
         return @intCast(u32, dx * dx) + @intCast(u32, dy * dy);
