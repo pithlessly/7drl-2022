@@ -137,7 +137,7 @@ end;
 function Map.IsSolid(const at: Vec2): Boolean;
 var t: ^Tile;
 begin
-    result := TryGetTile(at, t) and (t^.kind = TileKind.solid);
+    result := (not TryGetTile(at, t)) or (t^.kind = TileKind.solid);
 end;
 
 type
