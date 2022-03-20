@@ -115,14 +115,14 @@ end;
 procedure Map.ResetVisibility(const status: Boolean);
 var i: NativeUInt;
 begin
-    for i := Low(tiles) to high(tiles) do
+    for i := Low(tiles) to High(tiles) do
         tiles[i].is_visible := status;
 end;
 
 function Map.TryGetTile(const at: Vec2; var t: TilePtr): Boolean;
 var idx: NativeUInt;
 begin
-    result := (at.x in [0..width - 1]) and (at.y in [0..height - 1]);
+    result := (0 <= at.x) and (at.x < width) and (0 <= at.y) and (at.y < height);
     if not result then
         exit;
     idx := NativeUInt(at.y) * NativeUInt(width) + NativeUInt(at.x);
