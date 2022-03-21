@@ -32,6 +32,10 @@ const Map = struct {
         return Map{ .width = width, .height = height, .tiles = tiles };
     }
 
+    fn deinit(self: Map, alloc: Allocator) void {
+        alloc.free(self.tiles);
+    }
+
     fn resetVisibility(self: *Map, status: bool) void {
         for (self.tiles) |*t| t.is_visible = status;
     }
@@ -64,6 +68,10 @@ pub fn init(alloc: Allocator, width: u16, height: u16) !World {
         .player = .{ .loc = Vec2.new(5, 5), .omniscient = true },
         .map = map,
     };
+}
+
+pub fn deinit(self: World, alloc: Allocator) void {
+    self.map.deinit(alloc);
 }
 
 pub fn playerLoc(self: World) Vec2 {
