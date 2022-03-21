@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
 const Rng = std.rand.DefaultPrng;
 
@@ -26,11 +27,45 @@ const Map = struct {
         for (tiles) |*t| t.* = .{
             .is_visible = false,
             .kind = if (rand.uintLessThan(u32, 5) == 0)
-                TileKind.solid
+                TileKind.empty
             else
-                TileKind.empty,
+                TileKind.solid,
         };
-        return Map{ .width = width, .height = height, .tiles = tiles };
+        var self = Map{ .width = width, .height = height, .tiles = tiles };
+        self.placeRooms(rand);
+        return self;
+    }
+
+    fn placeRooms(self: *Map, rand: std.rand.Random) void {
+        assert(self.width == 80 and self.height == 24); // will have to be changed if this changes
+        var group: i16 = 0;
+        while (group < 16) : (group += 1) {
+            // compute the widths of boundaries between rooms
+            var boundaries = [1]u8{ 1 } ** 6;
+            {
+                var i: u32 = 0;
+                while (i < 3) : (i += 1)
+                    boundaries[rand.uintLessThan(usize, boundaries.len)] += 1;
+            }
+            // place rooms on the map
+            var room: usize = 0;
+            var y: i16 = 0;
+            const base_x = group * 5 + 1;
+            while (room < 5) : (room += 1) {
+                y += boundaries[room];
+                if (rand.uintLessThan(usize, 7) == 0) {
+                    y += 3;
+                    continue;
+                }
+                comptime var i = 0;
+                inline while (i < 3) : (i += 1) {
+                    comptime var j = 0;
+                    inline while (j < 3) : (j += 1)
+                        self.tile(Vec2.new(base_x + j, y)).?.kind = TileKind.empty;
+                    y += 1;
+                }
+            }
+        }
     }
 
     fn deinit(self: Map, alloc: Allocator) void {
@@ -66,7 +101,7 @@ pub fn init(alloc: Allocator, width: u16, height: u16) !World {
     const map = try Map.init(alloc, rng.random(), width, height);
     return World{
         .rng = rng,
-        .player = .{ .loc = Vec2.new(5, 5), .omniscient = true },
+        .player = .{ .loc = Vec2.new(22, 3), .omniscient = true },
         .map = map,
     };
 }
