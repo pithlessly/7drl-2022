@@ -9,7 +9,7 @@ pub const Vec2 = struct {
     }
 
     pub fn eq(self: Vec2, other: Vec2) bool {
-        return self.x == other.x and self.y == other.y;
+        return std.meta.eql(self, other);
     }
 
     pub fn add(self: Vec2, other: Vec2) Vec2 {
