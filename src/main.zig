@@ -83,7 +83,7 @@ const Screen = struct {
 
         fn charOfTile(t: World.Tile) u16 {
             return switch (t.kind) {
-                .empty => ' ',
+                .empty => '.',
                 .solid => '#',
             };
         }
@@ -97,7 +97,7 @@ const Screen = struct {
                     break :blk if (t.is_visible)
                         charOfTile(t)
                     else
-                        '.';
+                        ' ';
                 },
                 .fg = .default,
             };
