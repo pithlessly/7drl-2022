@@ -72,7 +72,7 @@ pub fn Visibility(comptime World: type) type {
                 else blk: {
                     const n = top.numer;
                     const d = top.denom;
-                    var top_y = @intCast(i32, ((2 * @intCast(u32, x) + 1) * n + d) / (2 * d));
+                    var top_y = @intCast(i32, ((2 * @intCast(u32, x) - 1) * n + d) / (2 * d));
                     if (self.isOpaque(oct, vec(x, top_y))) {
                         if (top.ge(slope(2 * top_y + 1, 2 * x)) and
                             !self.isOpaque(oct, vec(x, top_y + 1)))
@@ -91,7 +91,7 @@ pub fn Visibility(comptime World: type) type {
                 else blk: {
                     const n = bottom.numer;
                     const d = bottom.denom;
-                    var bottom_y = @intCast(i32, ((2 * @intCast(u32, x) + 1) * n + d) / (2 * d));
+                    var bottom_y = @intCast(i32, ((2 * @intCast(u32, x) - 1) * n + d) / (2 * d));
                     if (bottom.ge(slope(2 * bottom_y + 1, 2 * x)) and
                         self.isOpaque(oct, vec(x, bottom_y)) and
                         !self.isOpaque(oct, vec(x, bottom_y + 1)))
@@ -102,16 +102,14 @@ pub fn Visibility(comptime World: type) type {
                 var y = column_top_y;
                 while (y >= column_bottom_y) : (y -= 1) {
                     const cell_loc = vec(x, y);
+                    if (World.magnitude(cell_loc) > self.max_distance) continue;
                     {
                         const cell_slope = slope(y, x);
-                        if (World.magnitude(cell_loc) > self.max_distance) continue;
                         // check if this cell should be visible
                         if ((y != column_top_y or top.ge(cell_slope)) and
                             (y != column_bottom_y or cell_slope.ge(bottom)))
                             self.markVisible(oct, cell_loc);
                     }
-                    // no need to compute opacity on the last iteration
-                    if (x == max_x) continue;
 
                     const cell_is_opaque = self.isOpaque(oct, cell_loc);
                     defer last_cell_was_opaque = cell_is_opaque;
