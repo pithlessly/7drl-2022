@@ -45,8 +45,8 @@ pub const Slope = struct {
     }
 
     fn delta(self: Slope, other: Slope) i64 {
-        const lprod: i64 = @as(u32, self.numer) * @as(u32, other.denom);
-        const rprod: i64 = @as(u32, self.denom) * @as(u32, other.numer);
+        const lprod: i64 = std.math.mulWide(u16, self.numer, other.denom);
+        const rprod: i64 = std.math.mulWide(u16, other.numer, self.denom);
         return lprod - rprod;
     }
 
