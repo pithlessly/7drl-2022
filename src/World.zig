@@ -3,6 +3,7 @@ const Allocator = std.mem.Allocator;
 const Rng = std.rand.DefaultPrng;
 
 const Vec2 = @import("geometry.zig").Vec2;
+const Visibility = @import("vision.zig").Visibility;
 
 pub const TileKind = enum { empty, solid };
 pub const Tile = struct {
@@ -95,9 +96,25 @@ pub fn toggleOmniscience(self: *World) void {
 pub fn recomputeVisibility(self: *World) void {
     const omniscient = self.player.omniscient;
     self.map.resetVisibility(omniscient);
-    if (!omniscient) {
-        std.debug.panic("todo: compute vision", .{});
-    }
+    if (!omniscient)
+        (Visibility(struct {
+            map: *Map,
+            const Self = @This();
+            pub fn isOpaque(self_: Self, at: Vec2) bool {
+                return self_.map.isSolid(at);
+            }
+            pub fn magnitude(at: Vec2) u32 {
+                return Vec2.new(0, 0).dist(at);
+            }
+            pub fn markVisible(self_: Self, at: Vec2) void {
+                if (self_.map.tile(at)) |tile|
+                    tile.is_visible = true;
+            }
+        }){
+            .world = .{ .map = &self.map },
+            .origin = self.player.loc,
+            .max_distance = 50,
+        }).compute();
 }
 
 test "compilation" {
