@@ -1,8 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
-const Reader = std.fs.File.Reader;
-const Writer = std.fs.File.Writer;
 
 const termios = @cImport(@cInclude("termios.h"));
 
@@ -30,13 +28,18 @@ fn exitRawMode() void {
     in_raw_mode_global = false;
 }
 
-fn beginUI(w: Writer) !void {
+const Reader = std.fs.File.Reader;
+const FileWriter = std.fs.File.Writer;
+const WriterBuffer = std.io.BufferedWriter(4096, FileWriter);
+const Writer = WriterBuffer.Writer;
+
+fn beginUI(w: FileWriter) !void {
     try enterRawMode();
     errdefer exitRawMode();
     try w.print("\x1b[?1049h", .{}); // switch to alternate screen
 }
 
-fn endUI(w: Writer) void {
+fn endUI(w: FileWriter) void {
     w.print("\x1b[?1049l", .{}) catch {}; // switch to main screen
     exitRawMode(); // make sure to do this even if the write fails
 }
@@ -109,11 +112,11 @@ const Screen = struct {
     cells: []Cell,
     cursor_x: u16,
     cursor_y: u16,
-    w: Writer,
+    wb: WriterBuffer,
 
-    fn init(alloc: Allocator, w: Writer, width: u16, height: u16) !Screen {
+    fn init(alloc: Allocator, wb: WriterBuffer, width: u16, height: u16) !Screen {
         assert(width > 0 and height > 0);
-        try w.print("\x1b[H\x1b[J", .{}); // clear screen & move to top
+        try wb.unbuffered_writer.print("\x1b[H\x1b[J", .{}); // clear screen & move to top
         const n_cells = @as(usize, width) * @as(usize, height);
         const cells = try alloc.alloc(Cell, n_cells);
         std.mem.set(Cell, cells, .{ .c = ' ', .fg = .default });
@@ -123,7 +126,7 @@ const Screen = struct {
             .cells = cells,
             .cursor_x = 0,
             .cursor_y = 0,
-            .w = w,
+            .wb = wb,
         };
     }
 
@@ -132,6 +135,7 @@ const Screen = struct {
     }
 
     fn update(self: *Screen, world: World) !void {
+        const writer = self.wb.writer();
         const player_loc = world.playerLoc();
         var cx = self.cursor_x;
         var cy = self.cursor_y;
@@ -145,8 +149,8 @@ const Screen = struct {
                 const old_cell = &self.cells[cell_idx];
                 cell_idx += 1;
                 if (!old_cell.eq(cur_cell)) {
-                    try moveCursor(self.w, cx, cy, x, y);
-                    try self.w.print("{u}", .{cur_cell.c});
+                    try moveCursor(writer, cx, cy, x, y);
+                    try writer.print("{u}", .{cur_cell.c});
                     cx = x + 1;
                     cy = y;
                     old_cell.* = cur_cell;
@@ -155,9 +159,10 @@ const Screen = struct {
         }
         const px = @intCast(u16, player_loc.x);
         const py = @intCast(u16, player_loc.y);
-        try moveCursor(self.w, cx, cy, px, py);
+        try moveCursor(writer, cx, cy, px, py);
         self.cursor_x = px;
         self.cursor_y = py;
+        try self.wb.flush();
     }
 };
 
@@ -179,12 +184,12 @@ fn readKey(r: Reader) !Key {
     };
 }
 
-fn runGame(alloc: Allocator, r: Reader, w: Writer) !void {
+fn runGame(alloc: Allocator, r: Reader, wb: WriterBuffer) !void {
     const width = 80;
     const height = 24;
     var world = try World.init(alloc, width, height);
     defer world.deinit(alloc);
-    var screen = try Screen.init(alloc, w, width, height);
+    var screen = try Screen.init(alloc, wb, width, height);
     defer screen.deinit(alloc);
     while (true) {
         world.recomputeVisibility();
@@ -210,7 +215,9 @@ pub fn main() anyerror!void {
     defer _ = alloc.deinit();
     try beginUI(stdout);
     defer endUI(stdout);
-    try runGame(alloc.allocator(), stdin, stdout);
+    var stdout_buf = std.io.bufferedWriter(stdout);
+    try runGame(alloc.allocator(), stdin, stdout_buf);
+    try stdout_buf.flush();
 }
 
 test "compilation" {
