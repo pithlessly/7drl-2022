@@ -25,9 +25,9 @@ const Map = struct {
         for (tiles) |*t| t.* = .{
             .is_visible = false,
             .kind = if (rand.uintLessThan(u32, 5) == 0)
-                TileKind.empty
+                TileKind.solid
             else
-                TileKind.solid,
+                TileKind.empty,
         };
         return Map{ .width = width, .height = height, .tiles = tiles };
     }
@@ -50,7 +50,7 @@ const Map = struct {
     }
 
     fn isSolid(self: Map, at: Vec2) bool {
-        return (self.tile(at) orelse return false).kind == .solid;
+        return (self.tile(at) orelse return true).kind == .solid;
     }
 };
 
