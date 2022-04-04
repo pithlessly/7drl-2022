@@ -91,9 +91,9 @@ const Screen = struct {
             };
         }
 
-        fn compute(world: World, player_loc: Vec2, at: Vec2) Cell {
+        fn compute(world: World, at: Vec2) Cell {
             return .{
-                .c = if (at.eq(player_loc))
+                .c = if (world.hasPlayerAt(at))
                     '@'
                 else blk: {
                     const t = world.mapTile(at).?.*;
@@ -136,7 +136,6 @@ const Screen = struct {
 
     fn update(self: *Screen, world: World) !void {
         const writer = self.wb.writer();
-        const player_loc = world.playerLoc();
         var cx = self.cursor_x;
         var cy = self.cursor_y;
         var cell_idx: usize = 0;
@@ -145,7 +144,7 @@ const Screen = struct {
             var x: u16 = 0;
             while (x < self.width) : (x += 1) {
                 const at = Vec2.new(@intCast(i16, x), @intCast(i16, y));
-                const cur_cell = Cell.compute(world, player_loc, at);
+                const cur_cell = Cell.compute(world, at);
                 const old_cell = &self.cells[cell_idx];
                 cell_idx += 1;
                 if (!old_cell.eq(cur_cell)) {
@@ -157,11 +156,8 @@ const Screen = struct {
                 }
             }
         }
-        const px = @intCast(u16, player_loc.x);
-        const py = @intCast(u16, player_loc.y);
-        try moveCursor(writer, cx, cy, px, py);
-        self.cursor_x = px;
-        self.cursor_y = py;
+        self.cursor_x = cx;
+        self.cursor_y = cy;
         try self.wb.flush();
     }
 };

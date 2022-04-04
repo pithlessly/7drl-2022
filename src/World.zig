@@ -110,8 +110,8 @@ pub fn deinit(self: World, alloc: Allocator) void {
     self.map.deinit(alloc);
 }
 
-pub fn playerLoc(self: World) Vec2 {
-    return self.player.loc;
+pub fn hasPlayerAt(self: World, at: Vec2) bool {
+    return self.player.loc.eq(at);
 }
 
 pub fn mapTile(self: World, at: Vec2) ?*Tile {
