@@ -162,7 +162,7 @@ const Screen = struct {
     }
 };
 
-const Key = enum { y, u, h, j, k, l, v, b, n, ctrl_c, other };
+const Key = enum { ctrl_c, y, u, h, j, k, l, v, b, n, question_mark, other };
 
 fn readKey(r: Reader) !Key {
     return switch (try r.readByte()) {
@@ -176,6 +176,7 @@ fn readKey(r: Reader) !Key {
         'v' => Key.v,
         'b' => Key.b,
         'n' => Key.n,
+        '?' => Key.question_mark,
         else => Key.other,
     };
 }
@@ -199,6 +200,7 @@ fn runGame(alloc: Allocator, r: Reader, wb: WriterBuffer) !void {
             .k => world.movePlayer( 0, -1),
             .l => world.movePlayer( 1,  0),
             .v => world.toggleOmniscience(),
+            .question_mark => try world.addPlayer(),
             else => {}
         }
     }
