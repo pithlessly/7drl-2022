@@ -26,9 +26,9 @@ fn adjustForOctant(origin: Vec2, o: Octant, p: Vec2) Vec2 {
 }
 
 // World should provide the following API:
-//    fn isOpaque(self, Vec2) Boolean    whether a given point is solid
+//    fn isOpaque(self, Vec2) bool       whether a given point is solid
 //    fn magnitude(Vec2) u32             distance metric to origin
-//    fn markVisible(self, Vec2)         mark a given point as visible
+//    fn markVisible(self, Vec2) !void   mark a given point as visible
 pub fn Visibility(comptime World: type, comptime Error: type) type {
     return struct {
         world: World,
