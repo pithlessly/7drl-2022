@@ -36,11 +36,11 @@ const Writer = WriterBuffer.Writer;
 fn beginUI(w: FileWriter) !void {
     try enterRawMode();
     errdefer exitRawMode();
-    try w.print("\x1b[?1049h", .{}); // switch to alternate screen
+    try w.print("\x1b[?1049h" ++ "\x1b[?25l", .{}); // switch to alternate screen, hide the cursor
 }
 
 fn endUI(w: FileWriter) void {
-    w.print("\x1b[?1049l", .{}) catch {}; // switch to main screen
+    w.print("\x1b[?25h" ++ "\x1b[?1049l", .{}) catch {}; // show the cursor, switch to main screen
     exitRawMode(); // make sure to do this even if the write fails
 }
 
