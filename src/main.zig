@@ -131,10 +131,12 @@ const Screen = struct {
 
     fn colorCode(ctx: enum(u8) { fg = 0, bg = 10 }, c: Color) u8 {
         return @enumToInt(ctx) + switch (c) {
+            // zig fmt: off
             .default   => @as(u8, 39),
             .black     => 30,
             .white     => 97,
             .dark_gray => 90,
+            // zig fmt: on
         };
     }
 
@@ -209,13 +211,15 @@ fn runGame(alloc: Allocator, r: Reader, wb: WriterBuffer) !void {
         std.debug.print("got key: {}\n", .{k});
         switch (k) {
             .ctrl_c => break,
+            // zig fmt: off
             .h => try world.movePlayer(-1,  0),
             .j => try world.movePlayer( 0,  1),
             .k => try world.movePlayer( 0, -1),
             .l => try world.movePlayer( 1,  0),
+            // zig fmt: on
             .v => try world.toggleOmniscience(),
             .question_mark => try world.jumpPlayer(),
-            else => {}
+            else => {},
         }
     }
 }
