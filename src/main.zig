@@ -212,10 +212,14 @@ fn runGame(alloc: Allocator, r: Reader, wb: WriterBuffer) !void {
         switch (k) {
             .ctrl_c => break,
             // zig fmt: off
+            .y => try world.movePlayer(-1, -1),
+            .u => try world.movePlayer( 1, -1),
             .h => try world.movePlayer(-1,  0),
             .j => try world.movePlayer( 0,  1),
             .k => try world.movePlayer( 0, -1),
             .l => try world.movePlayer( 1,  0),
+            .b => try world.movePlayer(-1,  1),
+            .n => try world.movePlayer( 1,  1),
             // zig fmt: on
             .v => try world.toggleOmniscience(),
             .question_mark => try world.jumpPlayer(),
