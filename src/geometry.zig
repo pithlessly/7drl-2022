@@ -21,6 +21,10 @@ pub const Vec2 = struct {
         const dy = @as(i32, self.y) - @as(i32, other.y);
         return @intCast(u32, dx * dx) + @intCast(u32, dy * dy);
     }
+
+    pub fn serialize(self: Vec2) u32 {
+        return @bitCast(u32, self);
+    }
 };
 
 pub const Slope = struct {

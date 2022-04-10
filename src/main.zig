@@ -185,21 +185,21 @@ fn runGame(alloc: Allocator, r: Reader, wb: WriterBuffer) !void {
     const width = 80;
     const height = 24;
     var world = try World.init(alloc, width, height);
-    defer world.deinit(alloc);
+    defer world.deinit();
     var screen = try Screen.init(alloc, wb, width, height);
     defer screen.deinit(alloc);
     while (true) {
-        world.recomputeVisibility();
+        try world.recomputeVisibility();
         try screen.update(world);
         const k = try readKey(r);
         std.debug.print("got key: {}\n", .{k});
         switch (k) {
             .ctrl_c => break,
-            .h => world.movePlayer(-1,  0),
-            .j => world.movePlayer( 0,  1),
-            .k => world.movePlayer( 0, -1),
-            .l => world.movePlayer( 1,  0),
-            .v => world.toggleOmniscience(),
+            .h => try world.movePlayer(-1,  0),
+            .j => try world.movePlayer( 0,  1),
+            .k => try world.movePlayer( 0, -1),
+            .l => try world.movePlayer( 1,  0),
+            .v => try world.toggleOmniscience(),
             .question_mark => try world.addPlayer(),
             else => {}
         }

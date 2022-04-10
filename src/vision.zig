@@ -29,7 +29,7 @@ fn adjustForOctant(origin: Vec2, o: Octant, p: Vec2) Vec2 {
 //    fn isOpaque(self, Vec2) Boolean    whether a given point is solid
 //    fn magnitude(Vec2) u32             distance metric to origin
 //    fn markVisible(self, Vec2)         mark a given point as visible
-pub fn Visibility(comptime World: type) type {
+pub fn Visibility(comptime World: type, comptime Error: type) type {
     return struct {
         world: World,
         origin: Vec2,
@@ -41,8 +41,8 @@ pub fn Visibility(comptime World: type) type {
             return self.world.isOpaque(adjustForOctant(self.origin, o, p));
         }
 
-        fn markVisible(self: *Self, o: Octant, p: Vec2) void {
-            self.world.markVisible(adjustForOctant(self.origin, o, p));
+        fn markVisible(self: *Self, o: Octant, p: Vec2) Error!void {
+            return self.world.markVisible(adjustForOctant(self.origin, o, p));
         }
 
         fn vec(x: i32, y: i32) Vec2 {
@@ -62,7 +62,7 @@ pub fn Visibility(comptime World: type) type {
             param_bottom: Slope,
             min_x: i32,
             max_x: i32,
-        ) void {
+        ) Error!void {
             var top = param_top;
             var bottom = param_bottom;
             var x = min_x;
@@ -108,7 +108,7 @@ pub fn Visibility(comptime World: type) type {
                         // check if this cell should be visible
                         if ((y != column_top_y or top.ge(cell_slope)) and
                             (y != column_bottom_y or cell_slope.ge(bottom)))
-                            self.markVisible(oct, cell_loc);
+                            try self.markVisible(oct, cell_loc);
                     }
 
                     const cell_is_opaque = self.isOpaque(oct, cell_loc);
@@ -121,7 +121,7 @@ pub fn Visibility(comptime World: type) type {
                             if (y == column_bottom_y) {
                                 bottom = mid_slope;
                                 break;
-                            } else self.computeSector(oct, top, mid_slope, x + 1, max_x)
+                            } else try self.computeSector(oct, top, mid_slope, x + 1, max_x)
                         else if (y == column_bottom_y)
                             return
                         else {}
@@ -135,12 +135,12 @@ pub fn Visibility(comptime World: type) type {
             }
         }
 
-        pub fn compute(self: *Self) void {
-            self.world.markVisible(self.origin);
+        pub fn compute(self: *Self) Error!void {
+            try self.world.markVisible(self.origin);
             const max_x = @intCast(i32, self.max_distance);
             var oct: Octant = 0;
             while (true) {
-                self.computeSector(oct, Slope.new(1, 1), Slope.new(0, 1), 1, max_x);
+                try self.computeSector(oct, Slope.new(1, 1), Slope.new(0, 1), 1, max_x);
                 if (oct == 7) break else oct += 1;
             }
         }
