@@ -345,9 +345,6 @@ pub fn recomputeVisibility(self: *World) !void {
     for (map.marked_visible_buf.items) |pos|
         map.tile(pos).?.is_visible = true;
 
-    _ = canonical_vis_hash;
-    _ = canonical_vis_length;
-
     for (map.next_visible_candidates.items) |loc|
         if (map.computeVisibility(self.alloc, loc)) |vis_length|
             if (canonical_vis_length == vis_length and
