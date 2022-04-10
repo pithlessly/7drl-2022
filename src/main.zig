@@ -74,35 +74,26 @@ fn moveCursor(w: Writer, old_x: u16, old_y: u16, new_x: u16, new_y: u16) !void {
 }
 
 const Screen = struct {
-    const Color = enum { default };
+    const Color = enum { default, black, white, dark_gray };
 
     const Cell = struct {
         c: u16,
         fg: Color,
+        bg: Color,
 
         fn eq(self: Cell, other: Cell) bool {
             return std.meta.eql(self, other);
         }
 
-        fn charOfTile(t: World.Tile) u16 {
-            return switch (t.kind) {
-                .empty => '.',
-                .solid => '#',
-            };
-        }
-
         fn compute(world: World, at: Vec2) Cell {
-            return .{
-                .c = if (world.hasPlayerAt(at))
-                    '@'
-                else blk: {
-                    const t = world.mapTile(at).?.*;
-                    break :blk if (t.is_visible)
-                        charOfTile(t)
-                    else
-                        ' ';
-                },
-                .fg = .default,
+            if (world.hasPlayerAt(at))
+                return .{ .c = '@', .fg = .black, .bg = .white };
+            const tile = world.mapTile(at).?.*;
+            if (!tile.is_visible)
+                return .{ .c = ' ', .fg = .default, .bg = .default };
+            return switch (tile.kind) {
+                .empty => .{ .c = '.', .fg = .default, .bg = .default },
+                .solid => .{ .c = '#', .fg = .default, .bg = .dark_gray },
             };
         }
     };
@@ -112,6 +103,8 @@ const Screen = struct {
     cells: []Cell,
     cursor_x: u16,
     cursor_y: u16,
+    cursor_fg: Color,
+    cursor_bg: Color,
     wb: WriterBuffer,
 
     fn init(alloc: Allocator, wb: WriterBuffer, width: u16, height: u16) !Screen {
@@ -119,13 +112,15 @@ const Screen = struct {
         try wb.unbuffered_writer.print("\x1b[H\x1b[J", .{}); // clear screen & move to top
         const n_cells = @as(usize, width) * @as(usize, height);
         const cells = try alloc.alloc(Cell, n_cells);
-        std.mem.set(Cell, cells, .{ .c = ' ', .fg = .default });
+        std.mem.set(Cell, cells, .{ .c = ' ', .fg = .default, .bg = .default });
         return Screen{
             .width = width,
             .height = height,
             .cells = cells,
             .cursor_x = 0,
             .cursor_y = 0,
+            .cursor_fg = .default,
+            .cursor_bg = .default,
             .wb = wb,
         };
     }
@@ -134,10 +129,21 @@ const Screen = struct {
         alloc.free(self.cells);
     }
 
+    fn colorCode(ctx: enum(u8) { fg = 0, bg = 10 }, c: Color) u8 {
+        return @enumToInt(ctx) + switch (c) {
+            .default   => @as(u8, 39),
+            .black     => 30,
+            .white     => 97,
+            .dark_gray => 90,
+        };
+    }
+
     fn update(self: *Screen, world: World) !void {
         const writer = self.wb.writer();
         var cx = self.cursor_x;
         var cy = self.cursor_y;
+        var fg = self.cursor_fg;
+        var bg = self.cursor_bg;
         var cell_idx: usize = 0;
         var y: u16 = 0;
         while (y < self.height) : (y += 1) {
@@ -149,6 +155,12 @@ const Screen = struct {
                 cell_idx += 1;
                 if (!old_cell.eq(cur_cell)) {
                     try moveCursor(writer, cx, cy, x, y);
+                    if (fg != cur_cell.fg)
+                        try writer.print("\x1b[{}m", .{colorCode(.fg, cur_cell.fg)});
+                    if (bg != cur_cell.bg)
+                        try writer.print("\x1b[{}m", .{colorCode(.bg, cur_cell.bg)});
+                    fg = cur_cell.fg;
+                    bg = cur_cell.bg;
                     try writer.print("{u}", .{cur_cell.c});
                     cx = x + 1;
                     cy = y;
@@ -158,6 +170,8 @@ const Screen = struct {
         }
         self.cursor_x = cx;
         self.cursor_y = cy;
+        self.cursor_fg = fg;
+        self.cursor_bg = bg;
         try self.wb.flush();
     }
 };
