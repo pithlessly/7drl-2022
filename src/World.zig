@@ -359,15 +359,17 @@ pub fn recomputeVisibility(self: *World) !void {
             };
 }
 
-pub fn addPlayer(self: *World) !void {
-    const x = self.rng.random().uintLessThan(u15, self.map.width);
-    const y = self.rng.random().uintLessThan(u15, self.map.height);
-    const loc = Vec2.new(x, y);
-    if (self.hasPlayerAt(loc))
-        std.debug.print("location ({},{}) is already taken\n", .{ x, y })
-    else
-        try self.player.locs.append(loc);
-    return self.focusPlayer();
+pub fn jumpPlayer(self: *World) void {
+    self.player.locs.clearRetainingCapacity();
+    while (true) {
+        const x = self.rng.random().uintLessThan(u15, self.map.width);
+        const y = self.rng.random().uintLessThan(u15, self.map.height);
+        const loc = Vec2.new(x, y);
+        if (!self.map.isSolid(loc)) {
+            self.player.locs.appendAssumeCapacity(loc);
+            break;
+        }
+    }
 }
 
 test "compilation" {

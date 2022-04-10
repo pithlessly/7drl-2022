@@ -200,7 +200,7 @@ fn runGame(alloc: Allocator, r: Reader, wb: WriterBuffer) !void {
             .k => try world.movePlayer( 0, -1),
             .l => try world.movePlayer( 1,  0),
             .v => try world.toggleOmniscience(),
-            .question_mark => try world.addPlayer(),
+            .question_mark => world.jumpPlayer(),
             else => {}
         }
     }
