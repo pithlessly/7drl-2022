@@ -85,16 +85,30 @@ const Screen = struct {
             return std.meta.eql(self, other);
         }
 
+        fn charOfTile(t: World.TileKind) u16 {
+            return switch (t) {
+                .solid => '#',
+                .empty => '.',
+            };
+        }
+
         fn compute(world: World, at: Vec2) Cell {
             if (world.hasPlayerAt(at))
                 return .{ .c = '@', .fg = .black, .bg = .white };
             const tile = world.mapTile(at).?.*;
-            if (!tile.is_visible)
-                return .{ .c = ' ', .fg = .default, .bg = .default };
-            return switch (tile.kind) {
-                .empty => .{ .c = '.', .fg = .default, .bg = .default },
-                .solid => .{ .c = '#', .fg = .default, .bg = .dark_gray },
-            };
+            var c = charOfTile(tile.kind);
+            var fg = Color.default;
+            var bg = Color.default;
+            if (tile.is_visible)
+                switch (tile.kind) {
+                    .empty => {},
+                    .solid => bg = .dark_gray,
+                }
+            else if (tile.is_visited)
+                fg = .dark_gray
+            else
+                c = ' ';
+            return .{ .c = c, .fg = fg, .bg = bg };
         }
     };
 

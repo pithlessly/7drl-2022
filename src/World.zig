@@ -34,6 +34,7 @@ pub const TileKind = enum { empty, solid };
 pub const Tile = struct {
     kind: TileKind,
     is_visible: bool,
+    is_visited: bool,
 };
 
 const Player = struct {
@@ -64,6 +65,7 @@ const Map = struct {
         const tiles = try alloc.alloc(Tile, @as(usize, width) * @as(usize, height));
         for (tiles) |*t| t.* = .{
             .is_visible = false,
+            .is_visited = false,
             .kind = if (rand.uintLessThan(u32, 5) == 0)
                 TileKind.empty
             else
@@ -343,8 +345,11 @@ pub fn recomputeVisibility(self: *World) !void {
         unreachable;
     const canonical_vis_hash = map.hashVisibleBuf(canonical_player_loc);
 
-    for (map.marked_visible_buf.items) |pos|
-        map.tile(pos).?.is_visible = true;
+    for (map.marked_visible_buf.items) |pos| {
+        const tile = map.tile(pos).?;
+        tile.is_visible = true;
+        tile.is_visited = true;
+    }
 
     for (map.next_visible_candidates.items) |loc|
         if (map.computeVisibility(self.alloc, loc)) |vis_length|
@@ -356,6 +361,7 @@ pub fn recomputeVisibility(self: *World) !void {
                     const tile = map.tile(pos).?;
                     assert(!tile.is_visible);
                     tile.is_visible = true;
+                    tile.is_visited = true;
                 }
             };
 }
