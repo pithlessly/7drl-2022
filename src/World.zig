@@ -293,7 +293,6 @@ pub fn focusPlayer(self: *World) !void {
         }
         // these new candidates should be visited in random order
         self.rng.random().shuffle(Vec2, candidates.items[additional_candidates_start_idx..]);
-        std.debug.print("got more candidates: {}..{}\n", .{ additional_candidates_start_idx, candidates.items.len });
     }
 }
 
@@ -316,12 +315,14 @@ pub fn movePlayer(self: *World, dx: i2, dy: i2) !void {
             return; // no changes were made
         locs.shrinkRetainingCapacity(write_idx);
     }
-    return self.focusPlayer();
+    try self.focusPlayer();
+    try self.recomputeVisibility();
 }
 
 pub fn toggleOmniscience(self: *World) !void {
     self.player.omniscient = !self.player.omniscient;
-    return self.focusPlayer();
+    try self.focusPlayer();
+    try self.recomputeVisibility();
 }
 
 pub fn recomputeVisibility(self: *World) !void {
@@ -359,7 +360,7 @@ pub fn recomputeVisibility(self: *World) !void {
             };
 }
 
-pub fn jumpPlayer(self: *World) void {
+pub fn jumpPlayer(self: *World) !void {
     self.player.locs.clearRetainingCapacity();
     while (true) {
         const x = self.rng.random().uintLessThan(u15, self.map.width);
@@ -367,6 +368,8 @@ pub fn jumpPlayer(self: *World) void {
         const loc = Vec2.new(x, y);
         if (!self.map.isSolid(loc)) {
             self.player.locs.appendAssumeCapacity(loc);
+            // no need to call 'focusPlayer' because there is still only 1 player
+            try self.recomputeVisibility();
             break;
         }
     }
